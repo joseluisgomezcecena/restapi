@@ -55,7 +55,7 @@ class Task{
     }
 
     public function setTitle($title){
-        if(strlen($title) < 0 || strlen($title) < 255){
+        if(strlen($title) < 0 || strlen($title) > 255){
             throw new TaskException("Task Title Error");
         }
 
@@ -83,6 +83,18 @@ class Task{
             throw new TaskException("Task Completed Error");
         }
         $this->completed = $completed;
+    }
+
+
+    public function returnTaskAsArray(){
+        $task = array();
+        $task['id'] = $this->getId();
+        $task['title'] = $this->getTitle();
+        $task['description'] = $this->getDescription();
+        $task['deadline'] = $this->getDescription();
+        $task['completed'] = $this->getCompleted();
+
+        return $task;
     }
 
 }

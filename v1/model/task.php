@@ -75,6 +75,8 @@ class Task{
         if(($deadline !== null) &&    date_format(date_create_from_format('d/m/Y H:i:s', $deadline), 'd/m/Y H:i:s') != $deadline ){
             throw new TaskException("Task Deadline Error");
         }
+
+        $this->deadline = $deadline;
     }
 
 
@@ -91,7 +93,7 @@ class Task{
         $task['id'] = $this->getId();
         $task['title'] = $this->getTitle();
         $task['description'] = $this->getDescription();
-        $task['deadline'] = $this->getDescription();
+        $task['deadline'] = $this->getDeadline();
         $task['completed'] = $this->getCompleted();
 
         return $task;

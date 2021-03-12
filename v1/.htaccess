@@ -15,3 +15,5 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 
 RewriteRule ^tasks/(.*)$ controller/task.php?taskid=$1 [L,QSA,NC]
+RewriteRule ^tasks/complete$ controller/task.php?completed=1 [L,QSA,NC]
+RewriteRule ^tasks/incomplete$ controller/task.php?completed=0 [L,QSA,NC]

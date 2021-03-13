@@ -220,3 +220,83 @@ elseif(array_key_exists("completed", $_GET))
     }
 
 } 
+
+elseif(array_key_exists("page", $_GET))
+{
+    
+}
+
+elseif(empty($_GET))
+{
+    if($_SERVER["REQUEST_METHOD"] === "GET" )
+    {
+        try{
+
+            $query = $readDB->prepare('SELECT task_id, task_title, task_description, DATE_FORMAT(task_deadline, "%d/%m/%Y %H:%i:%s") AS task_deadline, task_complete FROM tbl_tasks');
+            $query->execute();
+
+            $row_count = $query->rowCount();
+
+            $tasksArray = array();
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                $task = new Task($row['task_id'], $row['task_title'], $row['task_description'], $row['task_deadline'], $row['task_complete']);
+                $tasksArray[] = $task->returnTaskAsArray();
+            }
+
+            $returnData = array();
+            $returnData['row_returned'] = $row_count;
+            $returnData['tasks'] = $tasksArray;
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->toCache(true);
+            $response->setData($returnData);
+            $response->send();
+            exit;
+
+
+        }
+        catch(TaskException $ex){
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage($ex->getMessage());
+            $response->send();
+            exit;
+        }
+        catch(PDOException $ex){
+
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage('Query Error on DB');
+            $response->send();
+            exit;
+
+        }
+    }
+    elseif($_SERVER["REQUEST_METHOD"] === "POST" )
+    {
+
+    }
+    else
+    {
+        $response = new Response();
+        $response->setHttpStatusCode(405);
+        $response->setSuccess(false);
+        $response->addMessage('Invalid Request Method.');
+        $response->send();
+        exit;
+    }
+}
+else
+{
+    $response = new Response();
+    $response->setHttpStatusCode(404);
+    $response->setSuccess(false);
+    $response->addMessage('Endpoint not found');
+    $response->send();
+    exit;
+}

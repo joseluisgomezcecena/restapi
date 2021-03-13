@@ -223,7 +223,110 @@ elseif(array_key_exists("completed", $_GET))
 
 elseif(array_key_exists("page", $_GET))
 {
-    
+    if($_SERVER['REQUEST_METHOD'] === 'GET' ){
+        $page = $_GET['page'];
+
+
+        if($page = '' || !is_numeric($page))
+        {
+            $response = new Response();
+            $response->setHttpStatusCode(400);
+            $response->setSuccess(false);
+            $response->addMessage('Invalid value for page parameter');
+            $response->send();
+            exit;       
+        }
+
+        $limit_per_page = 20;
+
+        try{
+            $query = $readDB->prepare('SELECT COUNT(task_id) AS totalNoOfTasks FROM tbl_tasks');
+            $query->execute();
+
+            $row = $query->fetch(PDO::FETCH_ASSOC);
+
+            $tasksCount = intval($row['totalNoOfTasks']);
+
+            $numOfPages = ceil($tasksCount/$limit_per_page);
+
+            if($numOfPages == 0){
+                $numOfPages = 1;
+            }
+            
+            if($page > $numOfPages || $page == 0){
+                $response = new Response();
+                $response->setHttpStatusCode(404);
+                $response->setSuccess(false);
+                $response->addMessage('Page not found'.$page.$numOfPages);
+                $response->send();
+                exit;  
+            }
+            
+
+            $offset = ($page == 1 ? 0 : ($limit_per_page * ($page - 1)));
+
+            $query = $readDB->prepare('SELECT task_id, task_title, task_description, DATE_FORMAT(task_deadline, "%d/%m/%Y %H:%i:%s") AS task_deadline, task_complete FROM tbl_tasks LIMIT :pglimit  offset :offset');
+            $query->bindParam('pglimit', $limit_per_page, PDO::PARAM_INT);
+            $query->bindParam('offset', $offset, PDO::PARAM_INT);
+            $query->execute();
+
+            $row_count = $query->rowCount();
+
+            $tasksArray = array();
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC)){
+                $task = new Task($row['task_id'], $row['task_title'], $row['task_description'], $row['task_deadline'], $row['task_complete']);
+                $tasksArray[] = $task->returnTaskAsArray();
+            }
+
+            $returnData = array();
+            $returnData['row_returned'] = $row_count;
+            $returnData['total_rows'] = $tasksCount;
+            $returnData['total_pages'] = $numOfPages;
+            ($page < $numOfPages ? $returnData['has_next_page'] = true : $returnData['has_next_page'] = false );
+            ($page > 1 ? $returnData['has_previous_page'] = true : $returnData['has_previous_page'] = false );
+            $returnData['tasks'] = $tasksArray;
+
+
+
+            $response = new Response();
+            $response->setHttpStatusCode(200);
+            $response->setSuccess(true);
+            $response->toCache(true);
+            $response->setData($returnData);
+            $response->send();
+            exit;
+
+
+        }
+        catch(TaskException $ex){
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage($ex->getMessage());
+            $response->send();
+            exit; 
+        }
+        catch(PDOException $ex){
+            error_log("Database Query Error - " .$ex, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage('Db Query Error.');
+            $response->send();
+            exit; 
+        }
+
+    }
+    else{
+
+        $response = new Response();
+        $response->setHttpStatusCode(405);
+        $response->setSuccess(false);
+        $response->addMessage('Server Request method not allowed');
+        $response->send();
+        exit;       
+    }
 }
 
 elseif(empty($_GET))

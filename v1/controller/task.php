@@ -382,7 +382,124 @@ elseif(empty($_GET))
     }
     elseif($_SERVER["REQUEST_METHOD"] === "POST" )
     {
+        try{
 
+            if($_SERVER['CONTENT_TYPE'] !== 'application/json')
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage('Content Type is not allowed');
+                $response->send();
+                exit;
+            }
+
+            $rawPostData = file_get_contents('php://input');
+
+            if(!$json_data = json_decode($rawPostData))
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage('Request body is not valid json');
+                $response->send();
+                exit;
+            }
+
+            if(!isset($json_data->title) || !isset($json_data->completed))
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                (!isset($json_data->title) ? $response->addMessage('Title field cannot be empty') : false);
+                (!isset($json_data->completed) ? $response->addMessage('Completed status cannot be empty') : false);
+                $response->send();
+                exit;
+            }
+
+            $new_task = new Task(null, $json_data->title, (isset($json_data->description) ? $json_data->description : null), (isset($json_data->deadline) ? $json_data->deadline : null), $json_data->completed );
+
+            $title          = $new_task->getTitle();
+            $description    = $new_task->getDescription();
+            $deadline       = $new_task->getDeadline();
+            $completed      = $new_task->getCompleted();
+        
+            $query = $writeDB->prepare('INSERT INTO tbl_tasks (task_title, task_description, task_deadline, task_complete) VALUES (:title, :description, STR_TO_DATE(:deadline, \'%d/%m/%Y %H:%i:%s\'), :completed)');
+            $query->bindParam(':title', $title, PDO::PARAM_STR);
+            $query->bindParam(':description', $description, PDO::PARAM_STR);
+            $query->bindParam(':deadline', $deadline, PDO::PARAM_STR);
+            $query->bindParam(':completed', $completed, PDO::PARAM_STR);
+
+            $query->execute();
+
+            $row_count = $query->rowCount();
+
+            if($row_count === 0)
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->addMessage('Failed to create record');
+                $response->send();
+                exit;
+            }
+
+            $lastTaskId = $writeDB->lastInsertId();
+
+            $query = $writeDB->prepare('SELECT task_id, task_title, task_description, DATE_FORMAT(task_deadline, "%d/%m/Y %H:%i:%s"), task_complete FROM tbl_tasks WHERE task_id = :taskid');
+            $query->bindParam(':taskid', $lastTaskId, PDO::PARAM_INT);
+            $query->execute();
+
+            $row_count = $query->rowCount();
+
+            if($row_count === 0)
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(500);
+                $response->setSuccess(false);
+                $response->addMessage('Could not find record');
+                $response->send();
+                exit;    
+            }
+
+            $tasksArray = array();
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC))
+            {
+                $task = new Task($row['task_id'],  $row['task_title'], $row['task_description'], $row['task_deadline'], $row['task_complete'],);
+                $tasksArray[] = $tasks->returnTaskAsArray();
+            }
+
+            $returnData = array();
+            $returnData['rows_returned'] = $row_count;
+            $returnData['tasks'] = $tasksArray;
+
+            $response = new Response();
+            $response->setHttpStatusCode(201);
+            $response->setSuccess(true);
+            $response->addMessage('Task created successfully');
+            $response->setData($returnData);
+            $response->send();
+            exit;
+
+        }
+        catch(TaskException $ex){
+            $response = new Response();
+            $response->setHttpStatusCode(400);
+            $response->setSuccess(false);
+            $response->addMessage($ex->getMessage());
+            $response->send();
+            exit;
+        }
+        catch(PDOException $ex){
+            error_log('Database Query Error' . $ex, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage('Error Creating Record in Db' . $ex);
+            $response->send();
+            exit;
+        }
     }
     else
     {

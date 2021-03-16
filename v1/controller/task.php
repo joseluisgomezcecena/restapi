@@ -446,7 +446,7 @@ elseif(empty($_GET))
 
             $lastTaskId = $writeDB->lastInsertId();
 
-            $query = $writeDB->prepare('SELECT task_id, task_title, task_description, DATE_FORMAT(task_deadline, "%d/%m/Y %H:%i:%s"), task_complete FROM tbl_tasks WHERE task_id = :taskid');
+            $query = $writeDB->prepare('SELECT task_id, task_title, task_description, DATE_FORMAT(task_deadline, "%d/%m/Y %H:%i:%s") AS task_deadline, task_complete FROM tbl_tasks WHERE task_id = :taskid');
             $query->bindParam(':taskid', $lastTaskId, PDO::PARAM_INT);
             $query->execute();
 
@@ -467,7 +467,7 @@ elseif(empty($_GET))
             while($row = $query->fetch(PDO::FETCH_ASSOC))
             {
                 $task = new Task($row['task_id'],  $row['task_title'], $row['task_description'], $row['task_deadline'], $row['task_complete'],);
-                $tasksArray[] = $tasks->returnTaskAsArray();
+                $tasksArray[] = $task->returnTaskAsArray();
             }
 
             $returnData = array();

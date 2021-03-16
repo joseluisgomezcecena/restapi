@@ -227,7 +227,7 @@ elseif(array_key_exists("page", $_GET))
         $page = $_GET['page'];
 
 
-        if($page = '' || !is_numeric($page))
+        if($page == '' || !is_numeric($page))
         {
             $response = new Response();
             $response->setHttpStatusCode(400);

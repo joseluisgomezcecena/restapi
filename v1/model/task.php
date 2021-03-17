@@ -72,7 +72,7 @@ class Task{
     }
 
     public function setDeadline($deadline){
-        if(($deadline !== null) &&    date_format(date_create_from_format('d/m/Y H:i:s', $deadline), 'd/m/Y H:i:s') != $deadline ){
+        if(($deadline !== null) && date_format(date_create_from_format('d/m/Y H:i:s', $deadline), 'd/m/Y H:i:s') != $deadline ){
             throw new TaskException("Task Deadline Error");
         }
 

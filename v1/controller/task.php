@@ -135,6 +135,101 @@ if(array_key_exists("taskid", $_GET)){
     }
     elseif($_SERVER['REQUEST_METHOD'] === 'PATCH'){
 
+
+        try{
+
+            if($_SERVER['CONTENT_TYPE'] !== "application/json")
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage('Content type not allowed');
+                $response->send();
+                exit;    
+            }
+
+            $rawPatchData = file_get_contents('php://input');
+
+            if(!$json_data = json_decode($rawPatchData))
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage('Request body is not valid json.');
+                $response->send();
+                exit;    
+            }
+
+            $title_updated = false;
+            $description_updated = false;
+            $deadline_updated = false;
+            $completed_updated = false;
+
+            $query_fields = '';
+
+            if(isset($json_data->title))
+            {
+                $title_updated = true;
+                $query_fields .= 'task_tile = :title, ';
+            }
+
+            if(isset($json_data->description))
+            {
+                $description_updated = true;
+                $query_fields .= 'task_description = :description, ';
+            }
+
+            if(isset($json_data->deadline))
+            {
+                $deadline_updated = true;
+                $query_fields .= 'task_deadline = STR_TO_DATE(:deadline, "%d/%m/%Y %H:%i:%s"), ';
+            }
+
+            if(isset($json_data->completed))
+            {
+                $completed_updated = true;
+                $query_fields .= 'task_complete = :completed, ';
+            }
+
+            $query_fields = rtrim($query_fields, ", ");
+
+
+            if($title_updated === false && $description_updated === false && $deadline_updated === false && $completed_updated === false)
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(400);
+                $response->setSuccess(false);
+                $response->addMessage("No fields to update where provided.");
+                $response->send();
+                exit;
+            }
+
+            
+            
+
+
+
+
+        }
+        catch(TaskException $ex){
+            $response = new Response();
+            $response->setHttpStatusCode(400);
+            $response->setSuccess(false);
+            $response->addMessage($ex->getMessage());
+            $response->send();
+            exit;
+        }
+        catch(PDOException $ex){
+            error_log('Database query error' . $ex, 0);
+            $response = new Response();
+            $response->setHttpStatusCode(500);
+            $response->setSuccess(false);
+            $response->addMessage('Query error on update method.');
+            $response->send();
+            exit;
+        }
+
+
     }
     else{
         

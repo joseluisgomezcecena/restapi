@@ -204,10 +204,37 @@ if(array_key_exists("taskid", $_GET)){
                 exit;
             }
 
-            
-            
+
+            $query = $writeDB->prepare('SELECT task_id, task_title, task_description, DATE_FORMAT(task_deadline, "%d/%m/%Y %H:%i:%s") as task_deadline, task_complete FROM tbl_tasks WHERE task_id = :taskid');
+            $query->bindParam(':taskid', $task_id, PDO::PARAM_INT);
+            $query->execute();
+
+            $row_count = $query->rowCount();
+
+            if($row_count === 0)
+            {
+                $response = new Response();
+                $response->setHttpStatusCode(404);
+                $response->setSuccess(false);
+                $response->addMessage('Task not found.');
+                $response->send();
+                exit;
+            }
+
+            while($row = $query->fetch(PDO::FETCH_ASSOC))
+            {
+                $task = new Task($row['task_id'], $row['task_title'], $row['task_description'], $row['task_deadline'], $row['task_complete'], );
+            }
 
 
+            $query_string = 'UPDATE tbl_tasks SET '.$query_fields.'WHERE task_id = :taskid';
+            $query = $writeDB->prepare($query_string);
+
+            if($title_updated === true){
+                $task->setTitle($json_data->title);
+                $up_title = $task->getTitle();
+                $query->bindParam(':title', $up_title, PDO::PARAM_STR);
+            }
 
 
         }

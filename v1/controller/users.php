@@ -35,7 +35,7 @@ if($_SERVER['CONTENT_TYPE'] !== 'application/json'){
 }
 
 
-$raw_post_data = file_get_contents('php"//input');
+$raw_post_data = file_get_contents('php://input');
 
 if(!$json_data = json_decode($raw_post_data)){
     $response = new Response();
@@ -90,10 +90,47 @@ try{
         $response = new Response();
         $response->setHttpStatusCode(500);
         $response->setSuccess(false);
-        $response->addMessage('Couldn\'t create user.');
+        $response->addMessage('This username is already taken.');
         $response->send();
         exit;
     }
+
+    $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+
+
+    $query_string = "INSERT INTO users (user_fullname, user_name, user_password) VALUES ('$fullname', '$username', '$hashed_password')";
+    $query = $writeDB->prepare("INSERT INTO users (user_fullname, user_name, user_password) VALUES (:fullname, :username, :password)");
+    $query->bindParam(':fullname', $fullname, PDO::PARAM_STR);
+    $query->bindParam(':username', $username, PDO::PARAM_STR);
+    $query->bindParam(':password', $hashed_password, PDO::PARAM_STR);
+    $query->execute();
+
+    $row_count = $query->rowCount();
+
+    if($row_count === 0){
+        $response = new Response();
+        $response->setHttpStatusCode(500);
+        $response->setSuccess(false);
+        $response->addMessage('Error while creating your account.'.$query_string);
+        $response->send();
+        exit;
+    }
+
+    $last_user_id = $writeDB->lastInsertId();
+
+    $return_data = array();
+    $return_data['user_id'] = $last_user_id;
+    $return_data['full_name'] = $fullname;
+    $return_data['user_name'] = $username;
+
+    $response = new Response();
+    $response->setHttpStatusCode(201);
+    $response->setSuccess(true);
+    $response->addMessage('User Created.');
+    $response->setData($return_data);
+    $response->send();
+    exit;
+
 
 }
 catch(PDOException $ex){

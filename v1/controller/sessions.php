@@ -65,6 +65,18 @@ elseif(empty($_GET)){
         exit;   
     }
 
+    if(strlen($json_data->username) < 1 || strlen($json_data->username) > 255   || strlen($json_data->password) < 1 || strlen($json_data->password) > 255 ){
+        $response = new Response();
+        $response->setHttpStatusCode(400);
+        $response->setSuccess(false);
+        (strlen($json_data->username) < 1 ? $response->addMessage('Username not provided.') : false);
+        (strlen($json_data->username) > 255 ? $response->addMessage('User name cannot be over 255 characters.') : false);
+        (strlen($json_data->username) < 1 ? $response->addMessage('Password not provided.') : false);
+        (strlen($json_data->username) > 255 ? $response->addMessage('Password cannot be over 255 characters.') : false);
+        $response->send();
+        exit;   
+    } 
+
 }
 else{
     $response = new Response();
